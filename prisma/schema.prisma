@@ -1,0 +1,100 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  PENGELOLA_TOKO
+  PEMBELI
+}
+
+enum OrderStatus {
+  PENDING
+  DIPROSES
+  SELESAI
+  DIBATALKAN
+}
+
+model User {
+  id           String   @id @default(cuid())
+  name         String
+  email        String   @unique
+  passwordHash String
+  role         Role     @default(PEMBELI)
+  phone        String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  orders       Order[]  @relation("BuyerOrders")
+  managedNotes String?  @db.Text
+}
+
+model Category {
+  id        String    @id @default(cuid())
+  name      String    @unique
+  slug      String    @unique
+  createdAt DateTime  @default(now())
+  products  Product[]
+}
+
+model Product {
+  id          String      @id @default(cuid())
+  nama        String
+  slug        String      @unique
+  kategoriId  String?
+  kategori    Category?   @relation(fields: [kategoriId], references: [id], onDelete: SetNull)
+  kategoriNama String
+  harga       Int
+  stok        Int         @default(0)
+  deskripsi   String?     @db.Text
+  imageUrl    String?
+  unggulan    Boolean     @default(false)
+  isActive    Boolean     @default(true)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  orderItems  OrderItem[]
+
+  @@index([kategoriNama])
+  @@index([unggulan])
+}
+
+model Order {
+  id           String      @id @default(cuid())
+  code         String      @unique
+  buyerId      String?
+  buyer        User?       @relation("BuyerOrders", fields: [buyerId], references: [id], onDelete: SetNull)
+  buyerName    String
+  buyerPhone   String?
+  buyerAddress String?     @db.Text
+  note         String?     @db.Text
+  total        Int
+  status       OrderStatus @default(PENDING)
+  whatsappSent Boolean     @default(false)
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+  items        OrderItem[]
+}
+
+model OrderItem {
+  id          String  @id @default(cuid())
+  orderId     String
+  order       Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId   String?
+  product     Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+  productNama String
+  kategoriNama String
+  harga       Int
+  qty         Int
+  subtotal    Int
+}
+
+model Setting {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  value     String   @db.Text
+  updatedAt DateTime @updatedAt
+}
